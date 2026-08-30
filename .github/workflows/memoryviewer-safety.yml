@@ -1,0 +1,56 @@
+name: MemoryViewer safety
+
+on:
+  push:
+    branches:
+      - safe/read-only-sni
+  pull_request:
+    paths:
+      - 'usb2snesmemoryviewer/**'
+      - 'usb2snescore/**'
+      - 'usb2snescommon/**'
+      - 'tests/MemoryViewerSafety.Tests.ps1'
+      - '.github/workflows/memoryviewer-safety.yml'
+
+jobs:
+  safety-contract:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify read-only SNI contract
+        shell: pwsh
+        run: ./tests/MemoryViewerSafety.Tests.ps1
+
+  build-memoryviewer:
+    needs: safety-contract
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Restore legacy NuGet packages
+        shell: pwsh
+        run: nuget restore .\usb2snesw.sln -NonInteractive
+
+      - name: Build read-only MemoryViewer
+        shell: pwsh
+        run: >-
+          msbuild .\usb2snesmemoryviewer\usb2snesmemoryviewer.csproj
+          /m
+          /p:Configuration=Release
+          /p:Platform=AnyCPU
+          /p:TargetFrameworkVersion=v4.8
+          /p:RestorePackages=false
+
+      - name: Upload read-only executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: usb2snesmemoryviewer-readonly-sni
+          path: usb2snesmemoryviewer/bin/Release/**
+          if-no-files-found: error
