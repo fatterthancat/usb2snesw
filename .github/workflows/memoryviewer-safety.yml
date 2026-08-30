@@ -1,0 +1,20 @@
+name: MemoryViewer safety
+
+on:
+  push:
+    branches:
+      - safe/read-only-sni
+  pull_request:
+    paths:
+      - 'usb2snesmemoryviewer/**'
+      - 'tests/MemoryViewerSafety.Tests.ps1'
+      - '.github/workflows/memoryviewer-safety.yml'
+
+jobs:
+  safety-contract:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify read-only SNI contract
+        shell: pwsh
+        run: ./tests/MemoryViewerSafety.Tests.ps1
